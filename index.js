@@ -1,4 +1,4 @@
-const TOKEN = /*process.env.TOKEN ||*/ '997025459:AAEjEzITgsSEwZP6wr8k-6fymLVWY4LVDi8';
+const TOKEN = process.env.TOKEN || '997025459:AAEjEzITgsSEwZP6wr8k-6fymLVWY4LVDi8';
 const TelegramBot = require('node-telegram-bot-api');
 const options = {
   webHook: {
