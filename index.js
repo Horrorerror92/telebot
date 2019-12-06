@@ -36,16 +36,7 @@ client.query('SELECT sfid,email,password__c,office__c FROM salesforce.contact;',
 // Just to ping!
 bot.onText(/\/start/, function (msg, match) {
   var fromId = msg.from.id;
-  bot.sendMessage(fromId, " Введите логин.dev:");
+  bot.sendMessage(fromId, " Введите логин:");
 
 });
 
-bot.on('message', (event) => console.log(event.text.toString()));
-
-bot.on('message', (msg) => {
-  bot.sendMessage(msg.chat.id, 'Hi?', {
-    reply_markup: {
-      keyboard: [[trigger], ['Bulk option']]
-    }
-  });
-});
