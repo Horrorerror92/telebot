@@ -51,7 +51,7 @@ function initStart(fromId) {
 
   if (userState.currentStep == 1) {
 
-    bot.sendMessage(fromId, "Введите логин:");
+    bot.sendMessage(fromId, "Введите логинs:");
     console.log(" before login" + userState.currentStep);
     userState.currentStep = 2;
   }
