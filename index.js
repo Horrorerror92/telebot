@@ -179,7 +179,7 @@ function getRightData(valueLogin, valuePass, dataCallback) {
 
   client.query(`SELECT sfid,email,password__c,office__c FROM salesforce.contact WHERE email = '${valueLogin}'
   AND password__c = '${valuePass}';`, (err, res) => {
-
+    if (err) throw err;
     var tempArr = [];
     if (res.rows.length == 0) {
       return dataCallback(tempArr);
@@ -199,6 +199,11 @@ function getRightData(valueLogin, valuePass, dataCallback) {
 
 }
 
+getRightData('adminadmin@testsc.org', 'admin', function (result) {
+
+  console.log(result);
+
+});
 
 
 
