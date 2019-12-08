@@ -10,7 +10,7 @@ const TOKEN = process.env.TOKEN || token;
 const TelegramBot = require('node-telegram-bot-api');
 const options = {
   webHook: {
-    port: process.env.PORT || portFromConfig
+    port: process.env.PORT
   }
 };
 
