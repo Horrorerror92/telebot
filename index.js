@@ -41,8 +41,9 @@ bot.onText(/\/start/, function (msg, match) {
   } else {
 
     console.log(userState.currentStep);
-    var fromId = msg.from.id;
 
+    var fromId = msg.from.id;
+    bot.sendMessage(fromId, "Не работает:");
   }
 
 });
