@@ -79,35 +79,37 @@ function initStart(fromId) {
         let valueLogin = passData[0];
         let valuePass = passData[1];
 
-        // getRightData(valueLogin, valuePass, function (result) {
+        getRightData(valueLogin, valuePass, function (result) {
 
-        //   if (result.length != 0) {
-        //     bot.sendMessage(fromId, " Неправильный логин и/или пароль!");
-        //     userState.currentStep = 0;
-        //     console.log(userState.currentStep);
 
-        //   } else {
+          if (result.length != 0) {
+            bot.sendMessage(fromId, " Неправильный логин и/или пароль!");
+            userState.currentStep = 0;
+            console.log(userState.currentStep);
 
-        //     bot.sendMessage(fromId, " Авторизация прошла успешно!",
-        //       {
-        //         reply_markup: {
-        //           inline_keyboard: [
-        //             [
-        //               {
-        //                 text: "Текущий баланс",
-        //                 callback_data: 'currentBalance'
-        //               },
-        //               {
-        //                 text: "Создать карточку",
-        //                 callback_data: 'createCard'
-        //               }
-        //             ]
-        //           ]
-        //         }
-        //       });
-        //   }
+          } else {
 
-        // });
+            bot.sendMessage(fromId, " Авторизация прошла успешно!",
+              {
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: "Текущий баланс",
+                        callback_data: 'currentBalance'
+                      },
+                      {
+                        text: "Создать карточку",
+                        callback_data: 'createCard'
+                      }
+                    ]
+                  ]
+                }
+              });
+          }
+
+        });
+
       }
     }
   });
@@ -173,38 +175,47 @@ bot.on('callback_query', query => {
 });
 
 
-// function getRightData(valueLogin, valuePass, dataCallback) {
+function getRightData(valueLogin, valuePass, dataCallback) {
 
-//   client.connect();
+  client.connect();
 
-//   client.query(`SELECT sfid,email,password__c,office__c FROM salesforce.contact WHERE email = '${valueLogin}'
-//   AND password__c = '${valuePass}';`, (err, res) => {
+  client.query(`SELECT sfid,email,password__c,office__c FROM salesforce.contact WHERE email = '${valueLogin}'
+  AND password__c = '${valuePass}';`, (err, res) => {
 
-//     if (err) throw err;
-//     var tempArr = [];
-//     if (res.rows.length == 0) {
-//       return dataCallback(tempArr);
-//     } else {
+    if (err) throw err;
 
-//       for (let [keys, values] of Object.entries(res.rows)) {
+    var tempArr = [];
+    if (res.rows.length == 0) {
+      dataCallback(new Error('произошла ошибка'));
+      return dataCallback(tempArr);
 
-//         for (let [key, value] of Object.entries(values)) {
-//           tempArr.push(value);
+    } else {
+      for (let [keys, values] of Object.entries(res.rows)) {
 
-//         }
-//       }
-//       return dataCallback(tempArr);
-//     }
+        for (let [key, value] of Object.entries(values)) {
+          tempArr.push(value);
 
-//   });
+        }
+      }
+      if (tempArr == 0 || err) {
+        dataCallback(new Error('произошла ошибка'));
+      } else {
+        return dataCallback(tempArr);
+      }
 
-// }
+    }
 
-// getRightData('adminadmin@testsc.org', 'admin', function (result) {
 
-//   console.log(result);
 
-// });
+  });
+
+}
+
+getRightData('adminadmin@testsc.org', 'admin', function (result) {
+
+  console.log(result);
+
+});
 
 
 
