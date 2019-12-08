@@ -6,7 +6,7 @@ const portFromConfig = config.get('port');
 const appUrl = config.get('appurl');
 const database = config.get('database');
 
-const TOKEN = process.env.TOKEN || token;
+const TOKEN = process.env.TOKEN;
 const TelegramBot = require('node-telegram-bot-api');
 const options = {
   webHook: {
@@ -15,11 +15,11 @@ const options = {
 };
 
 const client = new Client({
-  connectionString: process.env.DATABASE_URL || database,
+  connectionString: process.env.DATABASE_URL,
   ssl: true
 });
 
-const url = process.env.APP_URL || appUrl;
+const url = process.env.APP_URL;
 const bot = new TelegramBot(TOKEN, options);
 //const bot = new TelegramBot(TOKEN, { polling: true });
 
