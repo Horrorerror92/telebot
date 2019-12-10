@@ -30,6 +30,7 @@ const WizardScene = require('telegraf/scenes/wizard');
 const config = require('config');
 const { Client } = require('pg');
 const database = config.get('database');
+const extra = require('telegraf/extra');
 
 const ArrToLogin = [];
 
@@ -37,7 +38,6 @@ let client = new Client({
   connectionString: process.env.DATABASE_URL || database,
   ssl: true
 });
-
 
 const superWizard = new WizardScene('super-wizard',
 
@@ -47,6 +47,7 @@ const superWizard = new WizardScene('super-wizard',
   },
 
   (ctx) => {
+
     ctx.reply('Введите пароль: ');
     ArrToLogin.push(ctx.message.text);
     return ctx.wizard.next()
@@ -55,30 +56,28 @@ const superWizard = new WizardScene('super-wizard',
     ArrToLogin.push(ctx.message.text);
     Login = ArrToLogin[0];
     Pass = ArrToLogin[1];
-
+    console.log(ArrToLogin);
     const result = await getData(Login, Pass)
+    ArrToLogin.length = 0;
     console.log(result);
-    console.log(result2);
+    if (result.length === 4) {
+      ctx.reply('ОК');
+    } else if (result.length === 0) {
+      ctx.reply('Неправильный логин и/или пароль, Если хотите повторить попытку,  напишите что-нибудь');
+    }
     return ctx.scene.leave()
   },
 )
 
-const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
-const stage = new Stage([superWizard], { default: 'super-wizard' })
-bot.use(session())
-bot.use(stage.middleware())
-bot.launch()
-
 const getData = async (valueLogin, valuePass) => {
   let tempArr = [];
 
-  await client.connect();
   const result = await client
     .query(`SELECT sfid,email,password__c,office__c FROM salesforce.contact WHERE email = '${valueLogin}'
     AND password__c = '${valuePass}';`)
 
   for (let [keys, values] of Object.entries(result.rows)) {
-    console.log(result);
+
 
     for (let [key, value] of Object.entries(values)) {
       tempArr.push(value);
@@ -90,6 +89,22 @@ const getData = async (valueLogin, valuePass) => {
   }
   return tempArr;
 };
+
+console.log(client.connection.stream.connecting);
+client.connect();
+console.log(client.connection.stream.connecting);
+const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
+const stage = new Stage([superWizard], { default: 'super-wizard' })
+bot.use(session())
+bot.use(stage.middleware())
+bot.launch()
+
+const successMsg = extra
+  .markdown().markup((msg) => msg.inlineKeyboard([
+    msg.callbackButton('Текущий баланс', 'balance'),
+    msg.callbackButton('Создать карточку', 'createCard')
+  ]));
+
 
 bot.catch((err, ctx) => {
   console.log(`Ooops, ecountered an error for ${ctx.updateType}`, err)
