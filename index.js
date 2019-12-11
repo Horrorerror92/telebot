@@ -19,7 +19,7 @@
 // bot.telegram.setWebhook(`${URL}/bot${API_TOKEN}`);
 // bot.startWebhook(`/bot${API_TOKEN}`, null, PORT);
 
-/////////////////////////
+///////////////////////// Uncomment before final stage
 
 const Telegraf = require('telegraf');
 const Composer = require('telegraf/composer');
@@ -55,7 +55,7 @@ stepHandler.action('balance', async (ctx) => {
   console.log(resultId);
   ctx.reply(`Текущий баланс: $ ${resultId}. Для продолжения напишите что-нибудь`)
 
-  return ctx.wizard.next()
+  return ctx.scene.leave()
 })
 
 stepHandler.action('createCard', (ctx) => {
@@ -84,9 +84,7 @@ const superWizard = new WizardScene('super-wizard',
     ArrToLogin.push(ctx.message.text);
     Login = ArrToLogin[0];
     Pass = ArrToLogin[1];
-    console.log(ArrToLogin);
     const result = await getData(Login, Pass)
-    console.log(result);
     ArrToLogin.length = 0;
     if (result.length === 4) {
       ctx.scene.session.state = {
@@ -95,6 +93,7 @@ const superWizard = new WizardScene('super-wizard',
       ctx.reply('Авторизация прошла успешно', successMsg);
       return ctx.wizard.next()
     } else if (result.length === 0) {
+
       ctx.reply('Неправильный логин и/или пароль, Если хотите повторить попытку,  напишите что-нибудь');
       return ctx.scene.leave()
     }
@@ -103,6 +102,7 @@ const superWizard = new WizardScene('super-wizard',
   (ctx) => {
 
     let callbackData = ctx.update.callback_query.data;
+    console.log(callbackData);
     ctx.scene.session.state.result.push(callbackData);
 
     if (callbackData.toUpperCase() === 'CANCEL') {
@@ -114,19 +114,19 @@ const superWizard = new WizardScene('super-wizard',
       return ctx.wizard.next()
     }
     else if (callbackData.toUpperCase() === 'CALENDAR') {
+      // To do setDateListener ?
+      return ctx.wizard.next()
+      const today = new Date();
+      const minDate = new Date(2015, 0, 1);
+      const maxDate = new Date(2020, 12, 31);
+      ctx.reply("Выберите дату", calendarApi.setMinDate(minDate).setMaxDate(maxDate).getCalendar())
 
-
-
-
-      // const today = new Date();
-      // const minDate = new Date(2015, 0, 1);
-      // const maxDate = new Date(2020, 12, 31);
-      // ctx.reply("Выберите дату", calendarApi.setMinDate(minDate).setMaxDate(maxDate).getCalendar())
+      console.log(calendarApi);
       // calendarApi.setDateListener((ctx, date) => {
       //   console.log(date);
       // });
 
-      return ctx.wizard.next()
+
     }
     else {
       ctx.reply('До свидания! Если хотите повторить попытку,  напишите что-нибудь');
@@ -144,16 +144,18 @@ const superWizard = new WizardScene('super-wizard',
 
     ArrToCard.push(ctx.message.text)
     let userId = ctx.scene.session.state.result[0];
-
-    console.log(ArrToCard);
-    console.log(userId);
-    //const result = await getData(Login, Pass)
+    let Amount = ArrToCard[0];
+    let Description = ArrToCard[1];
+    let cardDate = new Date().toUTCString();
+    console.log(`${Amount} ${Description} ${userId} ${cardDate}`);
+    setBalance(Amount, Description, userId, cardDate);
     ArrToCard.length = 0;
+    ctx.reply('Спасибо, запрос будет обработан. До свидания!');
     return ctx.scene.leave()
   }
 
 )
-
+// client logic
 const getData = async (valueLogin, valuePass) => {
   let tempArr = [];
 
@@ -201,7 +203,19 @@ const getBalance = async (valueId) => {
   return totalAmount;
 
 };
+// in heroku pg  - sfid is null, salesforce trigger does not work ?
+const setBalance = async (Amount, Description, userId, cardDate) => {
 
+  var parsedAmount = parseFloat(Amount, 10);
+  const MONTHLYFAKE = 'a012w000000VhXsAAK';
+
+  await client
+    .query(`INSERT INTO salesforce.expensecard__c
+    (Name, Amount__c, CardKeeper__c, CardDate__c,Description__c, MonthlyExpense__c)
+    VALUES('${userId}', ${parsedAmount}, '${userId}', '${cardDate}', '${Description}', '${MONTHLYFAKE}');`)
+};
+
+// app for begin
 
 client.connect();
 const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
@@ -209,6 +223,9 @@ const calendarApi = new Calendar(bot);
 const stage = new Stage([superWizard], { default: 'super-wizard' })
 bot.use(session())
 bot.use(stage.middleware())
+
+//Change before final stage
+
 bot.launch()
 
 const successMsg = extra
