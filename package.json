@@ -15,6 +15,7 @@
     "config": "^3.2.4",
     "moment": "^2.24.0",
     "pg": "^7.14.0",
-    "telegraf": "^3.34.1"
+    "telegraf": "^3.34.1",
+    "telegraf-calendar-telegram": "^1.5.7"
   }
 }

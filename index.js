@@ -1,4 +1,4 @@
-//var moment = require('moment');
+//
 
 //const token = config.get('token');
 //const portFromConfig = config.get('port');
@@ -31,17 +31,45 @@ const config = require('config');
 const { Client } = require('pg');
 const database = config.get('database');
 const extra = require('telegraf/extra');
+const Calendar = require('telegraf-calendar-telegram');
+const moment = require('moment');
 
 const ArrToLogin = [];
+const ArrToCard = [];
+const ArrToDate = [];
+
+
 
 let client = new Client({
   connectionString: process.env.DATABASE_URL || database,
   ssl: true
 });
 
+const stepHandler = new Composer()
+
+stepHandler.action('balance', async (ctx) => {
+
+  let userId = ctx.scene.session.state.result[0]
+  console.log(userId);
+  const resultId = await getBalance(userId)
+  console.log(resultId);
+  ctx.reply(`Текущий баланс: $ ${resultId}. Для продолжения напишите что-нибудь`)
+
+  return ctx.wizard.next()
+})
+
+stepHandler.action('createCard', (ctx) => {
+
+  ctx.reply(`На какой день хотите создать карточку?`, createCardMsg)
+
+  return ctx.wizard.next()
+})
+
+stepHandler.use((ctx) => ctx.replyWithMarkdown('Авторизация прошла успешно', successMsg))
 const superWizard = new WizardScene('super-wizard',
 
   (ctx) => {
+    ctx.scene.session.state = {}
     ctx.reply('Введите логин: ');
     return ctx.wizard.next()
   },
@@ -58,15 +86,72 @@ const superWizard = new WizardScene('super-wizard',
     Pass = ArrToLogin[1];
     console.log(ArrToLogin);
     const result = await getData(Login, Pass)
-    ArrToLogin.length = 0;
     console.log(result);
+    ArrToLogin.length = 0;
     if (result.length === 4) {
-      ctx.reply('ОК');
+      ctx.scene.session.state = {
+        result: result
+      }
+      ctx.reply('Авторизация прошла успешно', successMsg);
+      return ctx.wizard.next()
     } else if (result.length === 0) {
       ctx.reply('Неправильный логин и/или пароль, Если хотите повторить попытку,  напишите что-нибудь');
+      return ctx.scene.leave()
     }
-    return ctx.scene.leave()
   },
+  stepHandler,
+  (ctx) => {
+
+    let callbackData = ctx.update.callback_query.data;
+    ctx.scene.session.state.result.push(callbackData);
+
+    if (callbackData.toUpperCase() === 'CANCEL') {
+      ctx.reply('Авторизация прошла успешно', successMsg);
+      return ctx.wizard.back()
+    }
+    else if (callbackData.toUpperCase() === 'TODAY') {
+      ctx.reply('Что записывать в поле Amount?');
+      return ctx.wizard.next()
+    }
+    else if (callbackData.toUpperCase() === 'CALENDAR') {
+
+
+
+
+      // const today = new Date();
+      // const minDate = new Date(2015, 0, 1);
+      // const maxDate = new Date(2020, 12, 31);
+      // ctx.reply("Выберите дату", calendarApi.setMinDate(minDate).setMaxDate(maxDate).getCalendar())
+      // calendarApi.setDateListener((ctx, date) => {
+      //   console.log(date);
+      // });
+
+      return ctx.wizard.next()
+    }
+    else {
+      ctx.reply('До свидания! Если хотите повторить попытку,  напишите что-нибудь');
+
+      return ctx.scene.leave()
+    }
+
+  }, (ctx) => {
+
+
+    ArrToCard.push(ctx.message.text)
+    ctx.reply('Что записывать в поле Description?');
+    return ctx.wizard.next()
+  }, (ctx) => {
+
+    ArrToCard.push(ctx.message.text)
+    let userId = ctx.scene.session.state.result[0];
+
+    console.log(ArrToCard);
+    console.log(userId);
+    //const result = await getData(Login, Pass)
+    ArrToCard.length = 0;
+    return ctx.scene.leave()
+  }
+
 )
 
 const getData = async (valueLogin, valuePass) => {
@@ -90,10 +175,37 @@ const getData = async (valueLogin, valuePass) => {
   return tempArr;
 };
 
-console.log(client.connection.stream.connecting);
+const getBalance = async (valueId) => {
+
+  let tempArr = [];
+
+  const result = await client
+    .query(`SELECT sfid, Reminder__c, Keeper__c FROM salesforce.MonthlyExpense__c WHERE
+  Keeper__c = '${valueId}';`)
+
+  for (let [keys, values] of Object.entries(result.rows)) {
+
+    for (let [key, value] of Object.entries(values)) {
+      if (key.toUpperCase() === 'REMINDER__C') {
+        tempArr.push(value);
+      }
+    }
+
+  }
+  if (!tempArr.length) {
+    totalAmount = 0;
+  }
+  const reducer = (accumulator, currentValue) => accumulator + currentValue;
+  var totalAmount = tempArr.reduce(reducer);
+
+  return totalAmount;
+
+};
+
+
 client.connect();
-console.log(client.connection.stream.connecting);
 const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
+const calendarApi = new Calendar(bot);
 const stage = new Stage([superWizard], { default: 'super-wizard' })
 bot.use(session())
 bot.use(stage.middleware())
@@ -105,7 +217,14 @@ const successMsg = extra
     msg.callbackButton('Создать карточку', 'createCard')
   ]));
 
+const createCardMsg = extra
+  .markdown().markup((msg) => msg.inlineKeyboard([
+    msg.callbackButton('Сегодня', 'today'),
+    msg.callbackButton('Календарь', 'calendar'),
+    msg.callbackButton('Отмена', 'cancel')
+  ]));
 
 bot.catch((err, ctx) => {
   console.log(`Ooops, ecountered an error for ${ctx.updateType}`, err)
 })
+
