@@ -6,18 +6,13 @@
 //const database = config.get('database');
 
 //In web Hoook
-// const token = "997025459:AAEjEzITgsSEwZP6wr8k-6fymLVWY4LVDi8";
-// const port = "4444";
-// const appurl = "https://expenses-telebot.herokuapp.com:443";
+const token = "997025459:AAEjEzITgsSEwZP6wr8k-6fymLVWY4LVDi8";
+const port = "5007";
+const appurl = "https://expenses-telebot.herokuapp.com:443";
 
-
-// const API_TOKEN = process.env.TOKEN || token;
-// const PORT = process.env.PORT || port;
-// const URL = process.env.APP_URL || appurl;
-
-// const bot = new Telegraf(API_TOKEN);
-// bot.telegram.setWebhook(`${URL}/bot${API_TOKEN}`);
-// bot.startWebhook(`/bot${API_TOKEN}`, null, PORT);
+const API_TOKEN = process.env.TOKEN || token;
+const PORT = process.env.PORT || port;
+const URL = process.env.APP_URL || appurl;
 
 ///////////////////////// Uncomment before final stage
 
@@ -41,12 +36,13 @@ const ArrToDate = [];
 
 
 let client = new Client({
-  connectionString: process.env.DATABASE_URL || database,
+  connectionString: process.env.DATABASE_URL,
   ssl: true
 });
 
 const stepHandler = new Composer()
-
+const stepCalendar = new Composer()
+// middleware between 3 and 4 ,different action
 stepHandler.action('balance', async (ctx) => {
 
   let userId = ctx.scene.session.state.result[0]
@@ -64,23 +60,38 @@ stepHandler.action('createCard', (ctx) => {
 
   return ctx.wizard.next()
 })
+// middleware between 4 and 5 ,different action
+stepCalendar.action("calendarApi", (ctx) => {
 
+  calendarApi.setDateListener((ctx, date) => {
+    console.log(date);
+  });
+
+  return ctx.wizard.next()
+})
+
+// middleware between 3 and 4 steps void
 stepHandler.use((ctx) => ctx.replyWithMarkdown('Авторизация прошла успешно', successMsg))
-const superWizard = new WizardScene('super-wizard',
+// middleware between 4 and 5 steps void
+stepCalendar.use((ctx) => ctx.replyWithMarkdown("Выберите датуs", calendarApi.setMinDate(new Date(2015, 0, 1)).setMaxDate(new Date(2020, 12, 31)).getCalendar()))
 
+const superWizard = new WizardScene('super-wizard',
+  //1 step
   (ctx) => {
     ctx.scene.session.state = {}
     ctx.reply('Введите логин: ');
     return ctx.wizard.next()
   },
-
+  //2 step
   (ctx) => {
 
     ctx.reply('Введите пароль: ');
     ArrToLogin.push(ctx.message.text);
     return ctx.wizard.next()
   },
+  //3 step
   async (ctx) => {
+
     ArrToLogin.push(ctx.message.text);
     Login = ArrToLogin[0];
     Pass = ArrToLogin[1];
@@ -98,7 +109,9 @@ const superWizard = new WizardScene('super-wizard',
       return ctx.scene.leave()
     }
   },
+  // middleware between 3 & 4 steps
   stepHandler,
+  //4 step
   (ctx) => {
 
     let callbackData = ctx.update.callback_query.data;
@@ -111,37 +124,41 @@ const superWizard = new WizardScene('super-wizard',
     }
     else if (callbackData.toUpperCase() === 'TODAY') {
       ctx.reply('Что записывать в поле Amount?');
-      return ctx.wizard.next()
+      console.log(ctx.scene.session);
+      return ctx.wizard.selectStep(6)
     }
     else if (callbackData.toUpperCase() === 'CALENDAR') {
-      // To do setDateListener ?
-      return ctx.wizard.next()
+
       const today = new Date();
       const minDate = new Date(2015, 0, 1);
       const maxDate = new Date(2020, 12, 31);
       ctx.reply("Выберите дату", calendarApi.setMinDate(minDate).setMaxDate(maxDate).getCalendar())
-
-      console.log(calendarApi);
-      // calendarApi.setDateListener((ctx, date) => {
-      //   console.log(date);
-      // });
-
-
-    }
-    else {
-      ctx.reply('До свидания! Если хотите повторить попытку,  напишите что-нибудь');
-
-      return ctx.scene.leave()
+      return ctx.wizard.next()
     }
 
+
+  },
+  //stepCalendar,
+  // 5 step
+  (ctx) => {
+
+    ctx.reply('Что записывать в поле Amount calendar?');
+
+    console.log(ctx.update.callback_query);
+    return ctx.wizard.next()
+
+    //6 step
   }, (ctx) => {
 
-
+    console.log(ctx.scene.session);
     ArrToCard.push(ctx.message.text)
     ctx.reply('Что записывать в поле Description?');
     return ctx.wizard.next()
+
+    //7 step 
   }, (ctx) => {
 
+    console.log(ctx.scene.session);
     ArrToCard.push(ctx.message.text)
     let userId = ctx.scene.session.state.result[0];
     let Amount = ArrToCard[0];
@@ -218,7 +235,11 @@ const setBalance = async (Amount, Description, userId, cardDate) => {
 // app for begin
 
 client.connect();
-const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
+//const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
+const bot = new Telegraf(API_TOKEN);
+bot.telegram.setWebhook(`${URL}/bot${API_TOKEN}`);
+bot.startWebhook(`/bot${API_TOKEN}`, null, PORT);
+
 const calendarApi = new Calendar(bot);
 const stage = new Stage([superWizard], { default: 'super-wizard' })
 bot.use(session())
@@ -226,7 +247,7 @@ bot.use(stage.middleware())
 
 //Change before final stage
 
-bot.launch()
+//bot.launch()
 
 const successMsg = extra
   .markdown().markup((msg) => msg.inlineKeyboard([
