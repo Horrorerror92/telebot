@@ -227,24 +227,23 @@ const setBalance = async (Amount, Description, userId, cardDate) => {
 
   await client
     .query(`INSERT INTO salesforce.expensecard__c
-    (Name, Amount__c, CardKeeper__c, CardDate__c,Description__c, MonthlyExpense__c)
-    VALUES('${userId}', ${parsedAmount}, '${userId}', '${cardDate}', '${Description}', '${MONTHLYFAKE}');`)
+    (Name, Amount__c, CardKeeper__c, CardDate__c,Description__c, MonthlyExpense__c, ExternalID__c)
+    VALUES('${userId}', ${parsedAmount}, '${userId}', '${cardDate}', '${Description}', '${MONTHLYFAKE}', gen_random_uuid());`)
 };
 
 // app for begin
 
 client.connect();
 //const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
+///
 const bot = new Telegraf(API_TOKEN);
 bot.telegram.setWebhook(`${URL}/bot${API_TOKEN}`);
 bot.startWebhook(`/bot${API_TOKEN}`, null, PORT);
-
+///
 const calendarApi = new Calendar(bot);
 const stage = new Stage([superWizard], { default: 'super-wizard' })
 bot.use(session())
 bot.use(stage.middleware())
-
-//Change before final stage
 
 bot.launch()
 
