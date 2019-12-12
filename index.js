@@ -7,8 +7,9 @@
 
 //In web Hoook
 const token = "997025459:AAEjEzITgsSEwZP6wr8k-6fymLVWY4LVDi8";
-const port = "5007";
+const port = "5010";
 const appurl = "https://expenses-telebot.herokuapp.com:443";
+const database = "postgres://nompkhkmnxkser:4bb77550324c86b7e95993a349c671b6fac89104c06c0eddfb0fa69af6846965@ec2-54-246-92-116.eu-west-1.compute.amazonaws.com:5432/d6k22t3snu90ec"
 
 const API_TOKEN = process.env.TOKEN || token;
 const PORT = process.env.PORT || port;
@@ -24,7 +25,7 @@ const Markup = require('telegraf/markup');
 const WizardScene = require('telegraf/scenes/wizard');
 const config = require('config');
 const { Client } = require('pg');
-const database = config.get('database');
+//const database = config.get('database');
 const extra = require('telegraf/extra');
 const Calendar = require('telegraf-calendar-telegram');
 const moment = require('moment');
@@ -33,15 +34,13 @@ const ArrToLogin = [];
 const ArrToCard = [];
 const ArrToDate = [];
 
-
-
 let client = new Client({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || database,
   ssl: true
 });
 
 const stepHandler = new Composer()
-const stepCalendar = new Composer()
+//const stepCalendar = new Composer()
 // middleware between 3 and 4 ,different action
 stepHandler.action('balance', async (ctx) => {
 
@@ -61,19 +60,19 @@ stepHandler.action('createCard', (ctx) => {
   return ctx.wizard.next()
 })
 // middleware between 4 and 5 ,different action
-stepCalendar.action("calendarApi", (ctx) => {
+// stepCalendar.action("calendarApi", (ctx) => {
 
-  calendarApi.setDateListener((ctx, date) => {
-    console.log(date);
-  });
+//   calendarApi.setDateListener((ctx, date) => {
+//     console.log(date);
+//   });
 
-  return ctx.wizard.next()
-})
+//   return ctx.wizard.next()
+// })
 
 // middleware between 3 and 4 steps void
 stepHandler.use((ctx) => ctx.replyWithMarkdown('Авторизация прошла успешно', successMsg))
 // middleware between 4 and 5 steps void
-stepCalendar.use((ctx) => ctx.replyWithMarkdown("Выберите датуs", calendarApi.setMinDate(new Date(2015, 0, 1)).setMaxDate(new Date(2020, 12, 31)).getCalendar()))
+//stepCalendar.use((ctx) => ctx.replyWithMarkdown("Выберите датуs", calendarApi.setMinDate(new Date(2015, 0, 1)).setMaxDate(new Date(2020, 12, 31)).getCalendar()))
 
 const superWizard = new WizardScene('super-wizard',
   //1 step
@@ -247,7 +246,7 @@ bot.use(stage.middleware())
 
 //Change before final stage
 
-//bot.launch()
+bot.launch()
 
 const successMsg = extra
   .markdown().markup((msg) => msg.inlineKeyboard([
