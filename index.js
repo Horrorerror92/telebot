@@ -128,25 +128,18 @@ const superWizard = new WizardScene('super-wizard',
     }
     else if (callbackData.toUpperCase() === 'CALENDAR') {
 
-      const today = new Date();
-      const minDate = new Date(2015, 0, 1);
-      const maxDate = new Date(2020, 12, 31);
-      ctx.reply("Выберите дату", calendarApi.setMinDate(minDate).setMaxDate(maxDate).getCalendar())
+      ctx.reply('Напишите дату в формате YYYY-MM-DD Например: 2012-11-28');
       return ctx.wizard.next()
     }
 
 
   },
-  //stepCalendar,
-  // 5 step
+
   (ctx) => {
-
-    ctx.reply('Что записывать в поле Amount calendar?');
-
-    console.log(ctx.update.callback_query);
+    ArrToDate.push(ctx.message.text)
+    ctx.reply('Что записывать в поле Amount?');
     return ctx.wizard.next()
 
-    //6 step
   }, (ctx) => {
 
     console.log(ctx.scene.session);
@@ -154,7 +147,6 @@ const superWizard = new WizardScene('super-wizard',
     ctx.reply('Что записывать в поле Description?');
     return ctx.wizard.next()
 
-    //7 step 
   }, (ctx) => {
 
     console.log(ctx.scene.session);
@@ -162,7 +154,12 @@ const superWizard = new WizardScene('super-wizard',
     let userId = ctx.scene.session.state.result[0];
     let Amount = ArrToCard[0];
     let Description = ArrToCard[1];
+    console.log(ArrToDate);
+    console.log(ArrToDate.length);
     let cardDate = new Date().toUTCString();
+    if (ArrToDate.length !== 0) {
+      cardDate = new Date(ArrToDate[0]).toUTCString();
+    }
     console.log(`${Amount} ${Description} ${userId} ${cardDate}`);
     setBalance(Amount, Description, userId, cardDate);
     ArrToCard.length = 0;
@@ -171,7 +168,7 @@ const superWizard = new WizardScene('super-wizard',
   }
 
 )
-// client logic
+
 const getData = async (valueLogin, valuePass) => {
   let tempArr = [];
 
@@ -219,7 +216,7 @@ const getBalance = async (valueId) => {
   return totalAmount;
 
 };
-// in heroku pg  - sfid is null, salesforce trigger does not work ?
+
 const setBalance = async (Amount, Description, userId, cardDate) => {
 
   var parsedAmount = parseFloat(Amount, 10);
@@ -231,16 +228,12 @@ const setBalance = async (Amount, Description, userId, cardDate) => {
     VALUES('${userId}', ${parsedAmount}, '${userId}', '${cardDate}', '${Description}', '${MONTHLYFAKE}', gen_random_uuid());`)
 };
 
-// app for begin
-
 client.connect();
-//const bot = new Telegraf('845500942:AAE4XZRtug6HbL3qAqqFeH2ASw93aNbYpVU')
-///
+
 const bot = new Telegraf(API_TOKEN);
 bot.telegram.setWebhook(`${URL}/bot${API_TOKEN}`);
 bot.startWebhook(`/bot${API_TOKEN}`, null, PORT);
-///
-const calendarApi = new Calendar(bot);
+
 const stage = new Stage([superWizard], { default: 'super-wizard' })
 bot.use(session())
 bot.use(stage.middleware())
