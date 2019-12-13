@@ -1,11 +1,3 @@
-//
-
-//const token = config.get('token');
-//const portFromConfig = config.get('port');
-
-//const database = config.get('database');
-
-//In web Hoook
 const token = "997025459:AAEjEzITgsSEwZP6wr8k-6fymLVWY4LVDi8";
 const port = "5010";
 const appurl = "https://expenses-telebot.herokuapp.com:443";
@@ -15,20 +7,14 @@ const API_TOKEN = process.env.TOKEN || token;
 const PORT = process.env.PORT || port;
 const URL = process.env.APP_URL || appurl;
 
-///////////////////////// Uncomment before final stage
-
 const Telegraf = require('telegraf');
 const Composer = require('telegraf/composer');
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Markup = require('telegraf/markup');
 const WizardScene = require('telegraf/scenes/wizard');
-const config = require('config');
 const { Client } = require('pg');
-//const database = config.get('database');
 const extra = require('telegraf/extra');
-const Calendar = require('telegraf-calendar-telegram');
-const moment = require('moment');
 
 const ArrToLogin = [];
 const ArrToCard = [];
@@ -40,14 +26,11 @@ let client = new Client({
 });
 
 const stepHandler = new Composer()
-//const stepCalendar = new Composer()
-// middleware between 3 and 4 ,different action
+
 stepHandler.action('balance', async (ctx) => {
 
   let userId = ctx.scene.session.state.result[0]
-  console.log(userId);
   const resultId = await getBalance(userId)
-  console.log(resultId);
   ctx.reply(`Текущий баланс: $ ${resultId}. Для продолжения напишите что-нибудь`)
 
   return ctx.scene.leave()
@@ -59,36 +42,25 @@ stepHandler.action('createCard', (ctx) => {
 
   return ctx.wizard.next()
 })
-// middleware between 4 and 5 ,different action
-// stepCalendar.action("calendarApi", (ctx) => {
 
-//   calendarApi.setDateListener((ctx, date) => {
-//     console.log(date);
-//   });
-
-//   return ctx.wizard.next()
-// })
-
-// middleware between 3 and 4 steps void
 stepHandler.use((ctx) => ctx.replyWithMarkdown('Авторизация прошла успешно', successMsg))
-// middleware between 4 and 5 steps void
-//stepCalendar.use((ctx) => ctx.replyWithMarkdown("Выберите датуs", calendarApi.setMinDate(new Date(2015, 0, 1)).setMaxDate(new Date(2020, 12, 31)).getCalendar()))
 
 const superWizard = new WizardScene('super-wizard',
-  //1 step
+
   (ctx) => {
+
     ctx.scene.session.state = {}
     ctx.reply('Введите логин: ');
     return ctx.wizard.next()
   },
-  //2 step
+
   (ctx) => {
 
     ctx.reply('Введите пароль: ');
     ArrToLogin.push(ctx.message.text);
     return ctx.wizard.next()
   },
-  //3 step
+
   async (ctx) => {
 
     ArrToLogin.push(ctx.message.text);
@@ -108,13 +80,12 @@ const superWizard = new WizardScene('super-wizard',
       return ctx.scene.leave()
     }
   },
-  // middleware between 3 & 4 steps
+
   stepHandler,
-  //4 step
+
   (ctx) => {
 
     let callbackData = ctx.update.callback_query.data;
-    console.log(callbackData);
     ctx.scene.session.state.result.push(callbackData);
 
     if (callbackData.toUpperCase() === 'CANCEL') {
@@ -123,7 +94,6 @@ const superWizard = new WizardScene('super-wizard',
     }
     else if (callbackData.toUpperCase() === 'TODAY') {
       ctx.reply('Что записывать в поле Amount?');
-      console.log(ctx.scene.session);
       return ctx.wizard.selectStep(6)
     }
     else if (callbackData.toUpperCase() === 'CALENDAR') {
@@ -132,41 +102,35 @@ const superWizard = new WizardScene('super-wizard',
       return ctx.wizard.next()
     }
 
+  }, (ctx) => {
 
-  },
-
-  (ctx) => {
     ArrToDate.push(ctx.message.text)
     ctx.reply('Что записывать в поле Amount?');
     return ctx.wizard.next()
 
   }, (ctx) => {
 
-    console.log(ctx.scene.session);
     ArrToCard.push(ctx.message.text)
     ctx.reply('Что записывать в поле Description?');
     return ctx.wizard.next()
 
   }, (ctx) => {
 
-    console.log(ctx.scene.session);
     ArrToCard.push(ctx.message.text)
     let userId = ctx.scene.session.state.result[0];
     let Amount = ArrToCard[0];
     let Description = ArrToCard[1];
-    console.log(ArrToDate);
-    console.log(ArrToDate.length);
     let cardDate = new Date().toUTCString();
+
     if (ArrToDate.length !== 0) {
       cardDate = new Date(ArrToDate[0]).toUTCString();
     }
-    console.log(`${Amount} ${Description} ${userId} ${cardDate}`);
     setBalance(Amount, Description, userId, cardDate);
     ArrToCard.length = 0;
+    ArrToDate.length = 0;
     ctx.reply('Спасибо, запрос будет обработан. До свидания!');
     return ctx.scene.leave()
   }
-
 )
 
 const getData = async (valueLogin, valuePass) => {
